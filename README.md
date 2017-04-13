@@ -3,9 +3,11 @@
 Mocking the cassandra python API. Duh.  
 
 Ok, but why?
-1) Match cassandra data structures with native pythonic nested dicts and lists
-2) Build a CQL AST in python and actually process CQL queries on the mock
-3) Look ma, no cluster :)
+
+1) Study project: A fun way to learn about cassandra, no/new SQL
+2) Match cassandra data structures with native pythonic nested dicts and lists
+3) Build a CQL AST in python and actually process CQL queries on the mock
+4) Look ma, no cluster :)
 
 I am sure that you can actually use cassandra and embedded it in memory in a python module, - and in facts I have constructed a few times embedded cassandra engines in my apps, and apis - but this time I wanted a really minimalistics and cassandra-less ... cassandra.
 
@@ -17,7 +19,7 @@ This cassandra mocks reproduces _some_ of the features of the cassandra python A
 Please refer to Cassandra (http://cassandra.apache.org/) and the Python API https://datastax.github.io/python-driver/index.html
 
 ## This is a mock!
-This is a mock! If you want proper testing and an actual cassandra database running, please refer to http://cassandra.apache.org/ for the open source version and Datastax https://www.datastax.com/ for the enterprise edition.
+This is a mock! If you want proper cassandra design and testing and actually a running and humming cassandra database, please refer to http://cassandra.apache.org/ for the open source version and Datastax https://www.datastax.com/ for the enterprise edition.
 
 ## License
 Copyright 2017 Natalino Busa, Apache Licence 2.0
