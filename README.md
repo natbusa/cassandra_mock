@@ -37,13 +37,16 @@ session.execute(stmt)
 ```
 ### Insert 
 ```python
-stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','june','1','first', 'it is me, mario');")
+stmt = "insert into mybook.posts (user_id, month, id, title, body) 
+                          values ('nat','june','1','first', 'it is me, mario');")
 session.execute(stmt)
 
-stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','june','2','one', 'hello');")
+stmt = "insert into mybook.posts (user_id, month, id, title, body) 
+                          values ('nat','june','2','one', 'hello');")
 session.execute(stmt)
 
-stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','july','3','more', 'yo dawg!');")
+stmt = "insert into mybook.posts (user_id, month, id, title, body) 
+                          values ('nat','july','3','more', 'yo dawg!');")
 session.execute(stmt)
 ```
 
@@ -68,39 +71,51 @@ One for the data, the other for the indices.
 Types are not enforced.
 
 ```python
-   CDB_DATA = {
-       'mybook': {
-           'users': {
-               'nat': {
-                   'what': 'invent',
-                   'when': 'ever',
-               },
-               'amy': {
-                   'what': 'runs',
-                   'when': 'in the mornings',
-               },
-               'joe': {
-                   'what': 'sings',
-                   'when': 'at night',
-               }
+CDB_DATA = {
+   'mybook': {
+       'users': {
+           'nat': {
+               'what': 'invent',
+               'when': 'ever',
+           },
+           'amy': {
+               'what': 'runs',
+               'when': 'in the mornings',
+           },
+           'joe': {
+               'what': 'sings',
+               'when': 'at night',
            }
        }
    }
-   
-   CDB_INDEX = {
-       'mybook': {
-           'users': [['id']]
-       }
+}
+
+CDB_INDEX = {
+   'mybook': {
+       'users': [['id']]
    }
-   
-   CASSANDRA_DATA = {'data': CDB_DATA, 'index': CDB_INDEX}
-   
-   # start the mock
-   
-   cluster = Cluster([':memory:'], CASSANDRA_DATA)
-   session = cluster.connect()
-   session.set_keyspace("mybook")
+}
+
+CASSANDRA_DATA = {'data': CDB_DATA, 'index': CDB_INDEX}
+
+# start the mock
+
+cluster = Cluster([':memory:'], CASSANDRA_DATA)
+session = cluster.connect()
+session.set_keyspace("mybook")
+
+
+stmt = "select id, what from users;")
+session.execute(stmt)
+#  {'id': 'nat', 'what': 'invent'}
+#  {'id': 'amy', 'what': 'runs'}
+#  {'id': 'joe', 'what': 'sings'}
+
+stmt = "select * from users where id='nat';")
+session.execute(stmt)
+#  {'id': 'nat', 'what': 'invent', 'when': 'ever'}
 ```
+
 ## Supported CQL statements
 
   - CREATE TABLE
@@ -110,6 +125,8 @@ Types are not enforced.
   - DELETE
   - USE
 
+## Educational
+Feel free to use it to teach Python, Cassandra, CQL/SQL, AST parsing, testing driven design (TTD), Object Oriented programming, mocking etc. Great for students, coders, and sql enthusiasts.
 
 ## Experimental
 This mock is experimental and not really meant to fit any purpose other than understading how cassandra data structures works and how they could be mocked using native python types. It's probably a great base for students who want to understand Data structures, python classes, AST parsing, and CQL/SQL syntax. Other than that feel free to do with it whatever you want.
@@ -119,7 +136,7 @@ This cassandra mocks reproduces _some_ of the features of the cassandra python A
 Please refer to Cassandra (http://cassandra.apache.org/) and the Python API https://datastax.github.io/python-driver/index.html
 
 ## This is a mock!
-This is a mock! If you want proper cassandra design and testing and actually a running and humming cassandra database, please refer to http://cassandra.apache.org/ for the open source version and Datastax https://www.datastax.com/ for the enterprise edition.
+This is a mock! If you want design and testing cassandra-powered applications and go an actually download Cassandra. Please refer to http://cassandra.apache.org/ for the open source version and Datastax https://www.datastax.com/ for the enterprise edition.
 
 ## License
 Copyright 2017 Natalino Busa, Apache Licence 2.0
