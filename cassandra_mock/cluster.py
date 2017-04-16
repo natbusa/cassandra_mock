@@ -60,12 +60,12 @@ class Session:
     def set_keyspace(self, use_keyspace):
         self.use_keyspace = use_keyspace
     
-    def _check_keyspace_table(self, keyspace, table):
+    def _check_keyspace_table(self, keyspace, table=None):
         
         if not self.db.get(keyspace):
             raise
         
-        if not self.db[keyspace].get(table):
+        if table and (self.db[keyspace].get(table) is None):
             raise
     
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
@@ -144,6 +144,7 @@ class Session:
         # update the record
         for i in where_pkeys + where_ckeys:
             d = d[i]  # create and dive
+
         
         # update/create the record
         for k, v in update_dict.items():
@@ -189,8 +190,7 @@ class Session:
             # remove keys from items to store
             for k in pkeys_keys + ckeys_keys:
                 del cols_kv[k]
-
-            print(keyspace, table, cols_kv, where_pkeys, where_ckeys)
+            
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
         
         if p[0] == 'update':
@@ -225,7 +225,6 @@ class Session:
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
             
-            print(keyspace, table, cols_kv, where_pkeys, where_ckeys)
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
         
         if p[0] == 'select':
@@ -261,7 +260,23 @@ class Session:
                 limit = b[1]
             
             return self._query(keyspace, table, cols_sel, where_pkeys, where_ckeys, limit)
-
+        
+        if p[0] == 'create' and p[1] == 'table':
+            b = p['table']
+            (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
+            
+            # check keyspace
+            self._check_keyspace_table(keyspace)
+            
+            primary_key = p['columns_def']['columns']['column']['primary_key'][2]
+            if len(primary_key) > 1:
+                self.index[keyspace][table] = [list(primary_key[0])] + list(primary_key[2])
+            else:
+                keys = list(primary_key[0])
+                self.index[keyspace][table] = [keys[0]] + keys[0][1:]
+            
+            #create an empty tree in db
+            self.db[keyspace][table] = Tree()
 
 class Cluster:
     def __init__(self, seed, data):

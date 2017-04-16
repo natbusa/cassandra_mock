@@ -153,18 +153,18 @@ if __name__ == "__main__":
     print(p)
     
     s = """
-          CREATE TABLE sblocks (
-              id uuid,
-              block_id uuid,
-              subblock_id uuid,
-              data blob,
-              PRIMARY KEY ( (jh,ds,ds,s),subblock_id )
-          );
+        CREATE TABLE sblocks (
+            id uuid,
+            block_id uuid,
+            sub_block_id uuid,
+            data blob,
+            PRIMARY KEY ( (id, block_id), sub_block_id )
+        );
     """
     p = simpleSQL.parseString(s)
     print(p)
     
-    print(p['columns_def']['columns']['column']['primary_key'])
+    print(p['columns_def']['columns']['column']['primary_key'][2])
     
     # simpleSQL.runTests("""\
     #

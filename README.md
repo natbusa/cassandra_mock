@@ -11,6 +11,106 @@ Ok, but why?
 
 I am sure that you can actually use cassandra and embedded it in memory in a python module, - and in facts I have constructed a few times embedded cassandra engines in my apps, and apis - but this time I wanted a really minimalistics and cassandra-less ... cassandra.
 
+## How it works
+
+Use the same api calls as in the cassandra python driver as shown here below:
+
+connect to cassandra mock
+```
+cluster = Cluster([':memory:'])
+session = cluster.connect("mybook")
+```
+
+### Create table 
+```python
+stmt = "
+    CREATE TABLE posts (
+        user_id text,
+        month text,
+        id text,
+        title text,
+        body text,
+        PRIMARY KEY ( (user_id, month), id)
+    );
+")
+session.execute(stmt)
+```
+### Insert 
+```python
+stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','june','1','first', 'it is me, mario');")
+session.execute(stmt)
+
+stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','june','2','one', 'hello');")
+session.execute(stmt)
+
+stmt = "insert into mybook.posts (user_id, month, id, title, body) values ('nat','july','3','more', 'yo dawg!');")
+session.execute(stmt)
+```
+
+#### Query
+```python
+stmt = "use mybook;")
+session.execute(stmt)
+
+stmt = "select * from posts;")
+session.execute(stmt)
+#  {'title': 'first', 'body': 'it is me, mario', 'id': '1', 'month': 'june', 'user_id': 'nat'}
+#  {'title': 'one', 'body': 'hello', 'id': '2', 'month': 'june', 'user_id': 'nat'}
+#  {'title': 'more', 'body': 'yo dawg!', 'id': '3', 'month': 'july', 'user_id': 'nat'}
+
+
+```
+## Define an initial data load
+
+Cassandra in memory uses just two dictionaries :)   
+One for the data, the other for the indices.
+
+Types are not enforced.
+
+```python
+   CDB_DATA = {
+       'mybook': {
+           'users': {
+               'nat': {
+                   'what': 'invent',
+                   'when': 'ever',
+               },
+               'amy': {
+                   'what': 'runs',
+                   'when': 'in the mornings',
+               },
+               'joe': {
+                   'what': 'sings',
+                   'when': 'at night',
+               }
+           }
+       }
+   }
+   
+   CDB_INDEX = {
+       'mybook': {
+           'users': [['id']]
+       }
+   }
+   
+   CASSANDRA_DATA = {'data': CDB_DATA, 'index': CDB_INDEX}
+   
+   # start the mock
+   
+   cluster = Cluster([':memory:'], CASSANDRA_DATA)
+   session = cluster.connect()
+   session.set_keyspace("mybook")
+```
+## Supported CQL statements
+
+  - CREATE TABLE
+  - SELECT
+  - INSERT
+  - UPDATE
+  - DELETE
+  - USE
+
+
 ## Experimental
 This mock is experimental and not really meant to fit any purpose other than understading how cassandra data structures works and how they could be mocked using native python types. It's probably a great base for students who want to understand Data structures, python classes, AST parsing, and CQL/SQL syntax. Other than that feel free to do with it whatever you want.
 

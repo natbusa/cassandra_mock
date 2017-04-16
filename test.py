@@ -99,34 +99,57 @@ except:
 
 session.execute('use autoscience;')
 
-print('----')
-rows = session.execute("select * from relationships where from_type='ideas' and from_id='0' and to_type='projects';")
-for row in rows: print(row)
 
-print('----')
-rows = session.execute("select * from relationships where from_type='ideas' and from_id='0' ;")
-for row in rows: print(row)
+stmts = [
+    "select * from relationships where from_type='ideas' and from_id='0' and to_type='projects';",
+    "select * from relationships where from_type='ideas' and from_id='0' ;",
+    "insert into autoscience.projects (id, name, pippo) values ('44', 1,'33');",
+    "select * from projects where id='44';",
+    "select title from projects;",
+    "update autoscience.projects set name='baudo' where id='44';",
+    "select name from projects;",
+    """
+        CREATE TABLE sblocks (
+            id uuid,
+            block_id uuid,
+            sub_block_id uuid,
+            data blob,
+            PRIMARY KEY ( (id, block_id), sub_block_id )
+        );
+    """,
+    "insert into autoscience.sblocks (id, block_id, sub_block_id, data) values ('a','b','c','d');",
+    "select * from sblocks;"
+]
 
-print('----')
-rows = session.execute("select * from relationships where from_type='ideas' and from_id='0' ;")
-for row in rows: print(row)
+----
+{'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'oh': 'my', 'to_id': '0'}
+{'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'to_id': '1'}
+----
+{'from_type': 'ideas', 'from_id': '0', 'to_id': '4', 'to_type': 'ideas'}
+{'from_type': 'ideas', 'from_id': '0', 'to_id': '2', 'to_type': 'ideas'}
+{'from_type': 'ideas', 'from_id': '0', 'oh': 'my', 'to_id': '0', 'to_type': 'projects'}
+{'from_type': 'ideas', 'from_id': '0', 'to_id': '1', 'to_type': 'projects'}
+----
+----
+{'id': '44', 'name': 1, 'pippo': '33'}
+----
+{'title': 'car'}
+{'title': 'plane'}
+{'title': None}
+{'title': None}
+----
+----
+{'name': None}
+{'name': None}
+{'name': None}
+{'name': 'baudo'}
+----
+----
+----
+{'data': 'd', 'sub_block_id': 'c', 'block_id': 'b', 'id': 'a'}
 
-print('----')
-rows = session.execute("insert into autoscience.projects (id, name, pippo) values ('44', 1,'33');")
-
-print('----')
-rows = session.execute("select * from projects where id='44';")
-for row in rows: print(row)
-
-print('----')
-rows = session.execute("select title from projects;")
-for row in rows: print(row)
-
-print('----')
-session.execute("update autoscience.projects set name='baudo' where id='44';")
-for row in rows: print(row)
-
-print('----')
-rows = session.execute("select name from projects;")
-for row in rows: print(row)
-
+for i in stmts:
+    print('----')
+    rows = session.execute(i)
+    if rows:
+        for row in rows: print(row)
