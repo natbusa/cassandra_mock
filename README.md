@@ -65,10 +65,8 @@ session.execute(stmt)
 ```
 ## Define an initial data load
 
-Cassandra in memory uses just two dictionaries :)   
-One for the data, the other for the indices.
-
-Types are not enforced.
+Cassandra in memory uses just one python dictionary! :)   
+Top keys of this dictionary are 'data' and 'index', obviously one for the data, the other for the indices.
 
 ```python
 CDB_DATA = {
