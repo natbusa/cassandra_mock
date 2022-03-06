@@ -160,6 +160,8 @@ class Session:
             else:
                 return float(s)
         
+        if 'SimpleStatement' in str(type(s)):
+            s = s.query_string
         p = simpleSQL.parseString(s)
         
         if p[0] == 'use':
@@ -279,13 +281,15 @@ class Session:
             self.db[keyspace][table] = Tree()
 
 class Cluster:
-    def __init__(self, seed, data):
+    def __init__(self, seed, data, port=None, protocol_version=None):
         # must clearly state :memory: in the list of seed
         if ':memory:' not in seed:
             raise
         
         self.data = Tree(data)
         self.session = None
+        self.port = port
+        self.protocol_version = protocol_version
     
     def connect(self, use_keyspace=None):
         self.session = Session(self.data, use_keyspace)
