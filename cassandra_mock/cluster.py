@@ -2,7 +2,8 @@ from .tree import Tree
 from .parser import simpleSQL
 import re
 from unittest.mock import MagicMock
-
+from cassandra.cluster import SimpleStatement, PreparedStatement
+import cassandra.cluster
 
 # some lists and dicts logistics
 
@@ -53,6 +54,7 @@ class Session:
     DEFAULTS = dict()
     DEFAULTS['QUERY_LIMIT'] = 1000
     shutdown = MagicMock()
+    prepare = cassandra.cluster.Session.prepare
     
     def __init__(self, data, use_keyspace=None):
         self.use_keyspace = use_keyspace
@@ -161,8 +163,10 @@ class Session:
             else:
                 return float(s)
         
-        if 'SimpleStatement' in str(type(s)):
+        if isinstance(s, SimpleStatement):
             s = s.query_string
+        elif isinstance(s, PreparedStatement):
+            assert 0, s
         p = simpleSQL.parseString(s)
         
         if p[0] == 'use':
