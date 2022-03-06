@@ -294,6 +294,7 @@ class Session:
 
 class Cluster:
     _default_load_balancing_policy = cassandra.cluster.Cluster.load_balancing_policy
+    _load_balancing_policy = cassandra.cluster.Cluster.load_balancing_policy
     def __init__(self, seed, data, port=None, protocol_version=None):
         # must clearly state :memory: in the list of seed
         if ':memory:' not in seed:
