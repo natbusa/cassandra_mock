@@ -151,7 +151,7 @@ class Session:
         for k, v in update_dict.items():
             d[k] = v
     
-    def execute(self, s):
+    def execute(self, s, *args, **kwargs):
         
         def cast_value(s):
             if re.search("^'.*'$", s):
