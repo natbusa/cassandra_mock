@@ -56,7 +56,6 @@ class Session:
     shutdown = MagicMock()
     prepare = cassandra.cluster.Session.prepare
     default_timeout = 10
-    #_row_factory = cassandra.cluster.Session.row_factory
     _row_factory = staticmethod(cassandra.cluster.named_tuple_factory)
     @property
     def row_factory(self):
@@ -294,7 +293,11 @@ class Session:
 
 class Cluster:
     _default_load_balancing_policy = cassandra.cluster.Cluster.load_balancing_policy
-    _load_balancing_policy = cassandra.cluster.Cluster.load_balancing_policy
+    _load_balancing_policy = None
+    @property
+    def load_balancing_policy(self):
+        return self._load_balancing_policy
+
     def __init__(self, seed, data, port=None, protocol_version=None):
         # must clearly state :memory: in the list of seed
         if ':memory:' not in seed:
