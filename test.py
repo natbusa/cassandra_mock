@@ -149,9 +149,9 @@ stmts = [
 ----
 {'data': 'd', 'sub_block_id': 'c', 'block_id': 'b', 'id': 'a'}
 """
-
-for i in stmts:
-    print('----')
-    rows = session.execute(i)
-    if rows:
-        for row in rows: print(row)
+if __name__ == "__main__":
+    for (i, stmt) in enumerate(stmts):
+        print('----', i)
+        rows = session.execute(stmt)
+        if rows:
+            for row in rows: print(row)
