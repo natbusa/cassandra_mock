@@ -3,7 +3,7 @@ from .parser import simpleSQL
 import re
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
-import cassandra.cluster
+import cassandra.cluster, cassandra.query
 
 # some lists and dicts logistics
 
@@ -68,6 +68,7 @@ class Session:
         self.use_keyspace = use_keyspace
         self.db = data['data']
         self.index = data['index']
+        self.encoder = cassandra.cluster.Encoder()
 
     def set_keyspace(self, use_keyspace):
         self.use_keyspace = use_keyspace
@@ -161,7 +162,7 @@ class Session:
         for k, v in update_dict.items():
             d[k] = v
     
-    def execute(self, s, *args, **kwargs):
+    def execute(self, s, parameters=None, **kwargs):
         
         def cast_value(s):
             if re.search("^'.*'$", s):
@@ -173,6 +174,8 @@ class Session:
         
         if isinstance(s, SimpleStatement):
             s = s.query_string
+            if parameters:
+                s = cassandra.query.bind_params(s, params, self.encoder)
         elif isinstance(s, PreparedStatement):
             assert 0, s
         p = simpleSQL.parseString(s)
