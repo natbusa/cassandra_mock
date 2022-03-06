@@ -55,7 +55,13 @@ class Session:
     DEFAULTS['QUERY_LIMIT'] = 1000
     shutdown = MagicMock()
     prepare = cassandra.cluster.Session.prepare
-    
+    default_timeout = 10
+    _row_factory = cassandra.cluster.Session.row_factory
+    #_row_factory = staticmethod(cassandra.cluster.named_tuple_factory)
+    @property
+    def row_factory(self):
+        return self._row_factory
+
     def __init__(self, data, use_keyspace=None):
         self.use_keyspace = use_keyspace
         self.db = data['data']
