@@ -1,6 +1,7 @@
 from .tree import Tree
 from .parser import simpleSQL
 import re
+from unittest.mock import MagicMock
 
 
 # some lists and dicts logistics
@@ -51,6 +52,7 @@ def flat(d, kk, level):
 class Session:
     DEFAULTS = dict()
     DEFAULTS['QUERY_LIMIT'] = 1000
+    shutdown = MagicMock()
     
     def __init__(self, data, use_keyspace=None):
         self.use_keyspace = use_keyspace
@@ -284,7 +286,7 @@ class Cluster:
     def __init__(self, seed, data, port=None, protocol_version=None):
         # must clearly state :memory: in the list of seed
         if ':memory:' not in seed:
-            raise
+            raise ValueError("One of the elements in 'seed' should be ':memory:'")
         
         self.data = Tree(data)
         self.session = None
