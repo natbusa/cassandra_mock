@@ -175,7 +175,7 @@ class Session:
         if isinstance(s, SimpleStatement):
             s = s.query_string
             if parameters:
-                s = cassandra.query.bind_params(s, params, self.encoder)
+                s = cassandra.query.bind_params(s, parameters, self.encoder)
         elif isinstance(s, PreparedStatement):
             assert 0, s
         p = simpleSQL.parseString(s)
