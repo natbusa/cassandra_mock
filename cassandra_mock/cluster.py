@@ -55,11 +55,14 @@ class Session:
     DEFAULTS['QUERY_LIMIT'] = 1000
     shutdown = MagicMock()
     prepare = cassandra.cluster.Session.prepare
-    default_timeout = 10
+    _default_timeout = 10
     _row_factory = staticmethod(cassandra.cluster.named_tuple_factory)
     @property
     def row_factory(self):
         return self._row_factory
+    @property
+    def default_timeout(self):
+        return self._default_timeout
 
     def __init__(self, data, use_keyspace=None):
         self.use_keyspace = use_keyspace
@@ -292,11 +295,20 @@ class Session:
 
 
 class Cluster:
-    _default_load_balancing_policy = cassandra.cluster.Cluster.load_balancing_policy
+    _default_load_balancing_policy = cassandra.cluster.Cluster._default_load_balancing_policy
     _load_balancing_policy = None
+    _default_retry_policy = cassandra.cluster.RetryPolicy()
     @property
     def load_balancing_policy(self):
         return self._load_balancing_policy
+    @property
+    def default_retry_policy(self):
+        """
+        A default :class:`.policies.RetryPolicy` instance to use for all
+        :class:`.Statement` objects which do not have a :attr:`~.Statement.retry_policy`
+        explicitly set.
+        """
+        return self._default_retry_policy
 
     def __init__(self, seed, data, port=None, protocol_version=None):
         # must clearly state :memory: in the list of seed
@@ -307,7 +319,15 @@ class Cluster:
         self.session = None
         self.port = port
         self.protocol_version = protocol_version
-    
+
+        self.profile_manager = cassandra.cluster.ProfileManager()
+        self.profile_manager.profiles[cassandra.cluster.EXEC_PROFILE_DEFAULT] = cassandra.cluster.ExecutionProfile(
+            self.load_balancing_policy,
+            self.default_retry_policy,
+            request_timeout=Session._default_timeout,
+            row_factory=Session._row_factory
+        )
+
     def connect(self, use_keyspace=None):
         self.session = Session(self.data, use_keyspace)
         return self.session
