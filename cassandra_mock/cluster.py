@@ -19,7 +19,7 @@ def merge_dicts(*dict_args):
 
 def add_index(k, v, l):
     """
-    takes a key, value and a list(dicts)),
+    takes a key, value and a list(dicts),
     returns a list of dicts with the extra key value added to the inner dicts
     """
     out = []
@@ -147,7 +147,6 @@ class Session:
         for i in where_pkeys + where_ckeys:
             d = d[i]  # create and dive
 
-        
         # update/create the record
         for k, v in update_dict.items():
             d[k] = v
@@ -209,7 +208,7 @@ class Session:
             if b:
                 for i in range(len(b)):
                     if (i % 2):
-                        continue;
+                        continue
                     cols_kv[b[i][0]] = cast_value(b[i][2])
             
             where_pkeys = []
@@ -223,7 +222,7 @@ class Session:
                 where_kv = dict()
                 for i in range(len(b)):
                     if not (i % 2):
-                        continue;
+                        continue
                     where_kv[b[i][0]] = cast_value(b[i][2])
                 
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
@@ -252,7 +251,7 @@ class Session:
                 where_kv = dict()
                 for i in range(len(b)):
                     if not (i % 2):
-                        continue;
+                        continue
                     where_kv[b[i][0]] = cast_value(b[i][2])
                 
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
@@ -279,8 +278,9 @@ class Session:
                 keys = list(primary_key[0])
                 self.index[keyspace][table] = [keys[0]] + keys[0][1:]
             
-            #create an empty tree in db
+            #  create an empty tree in db
             self.db[keyspace][table] = Tree()
+
 
 class Cluster:
     def __init__(self, seed, data, port=None, protocol_version=None):
