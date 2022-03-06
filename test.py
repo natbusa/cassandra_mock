@@ -121,6 +121,7 @@ stmts = [
     "select * from sblocks;"
 ]
 
+"""
 ----
 {'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'oh': 'my', 'to_id': '0'}
 {'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'to_id': '1'}
@@ -147,6 +148,7 @@ stmts = [
 ----
 ----
 {'data': 'd', 'sub_block_id': 'c', 'block_id': 'b', 'id': 'a'}
+"""
 
 for i in stmts:
     print('----')
