@@ -65,10 +65,10 @@ class Session:
     def _check_keyspace_table(self, keyspace, table=None):
         
         if not self.db.get(keyspace):
-            raise
+            raise KeyError(f"Keyspace {keyspace} not in self.db.")
         
         if table and (self.db[keyspace].get(table) is None):
-            raise
+            raise KeyError(f"Table {table} not in self.db[{keyspace}].")
     
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
         
@@ -85,7 +85,7 @@ class Session:
         if where_pkeys:
             # primary keys MUST be present or extract all table
             if len(pkeys_keys) != len(where_pkeys):
-                raise
+                raise KeyError("At least one primary key is not present")
             
             where_pkeys_dict = dict(zip(pkeys_keys, where_pkeys))
             
@@ -94,7 +94,7 @@ class Session:
             clevels_query = len(where_ckeys)
             clevels_left = clevels_all - clevels_query
             if clevels_left < 0:
-                raise
+                raise KeyError("clevels_left < 0")
             
             cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
             where_ckeys_dict = dict(zip(ckeys_keys[0:clevels_query], where_ckeys))
@@ -111,7 +111,7 @@ class Session:
             # as a single physical data structure, but display them as multiple rows
             d = flat(d, cl_idx, clevels_left) if d is not None else []
             
-            # add remaining keys (if any ouput)
+            # add remaining keys (if any output)
             d = [merge_dicts(where_pkeys_dict, where_ckeys_dict, v) for v in d]
         
         else:
