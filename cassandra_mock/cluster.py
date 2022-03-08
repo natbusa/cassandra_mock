@@ -6,7 +6,9 @@ import re
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
 import cassandra.cluster, cassandra.query
+
 logger = logging.getLogger(__name__)
+
 
 # some lists and dicts logistics
 
@@ -60,9 +62,11 @@ class Session:
     prepare = cassandra.cluster.Session.prepare
     _default_timeout = 10
     _row_factory = staticmethod(cassandra.cluster.named_tuple_factory)
+
     @property
     def row_factory(self):
         return self._row_factory
+
     @property
     def default_timeout(self):
         return self._default_timeout
@@ -75,88 +79,107 @@ class Session:
 
     def set_keyspace(self, use_keyspace):
         self.use_keyspace = use_keyspace
-    
+
     def _check_keyspace_table(self, keyspace, table=None):
-        
+
         if not self.db.get(keyspace):
             raise KeyError(f"Keyspace {keyspace} not in self.db.")
-        
+
         if table and (self.db[keyspace].get(table) is None):
             raise KeyError(f"Table {table} not in self.db[{keyspace}].")
-    
+
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
-        
+
         # if no keyspace given use the default
         keyspace = keyspace if keyspace else self.use_keyspace
-        
+
         # check keyspace, table
         self._check_keyspace_table(keyspace, table)
-        
+
         d = self.db[keyspace][table]
         pkeys_keys = list(self.index[keyspace][table][0])
         ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
-        
+
         if where_pkeys:
+            # assert 0, where_pkeys
             # primary keys MUST be present or extract all table
             if len(pkeys_keys) != len(where_pkeys):
                 raise KeyError("At least one primary key is not present")
-            
+
             where_pkeys_dict = dict(zip(pkeys_keys, where_pkeys))
-            
+
             # clustering keys MAY be present
             clevels_all = len(ckeys_keys)
             clevels_query = len(where_ckeys)
             clevels_left = clevels_all - clevels_query
             if clevels_left < 0:
                 raise KeyError("clevels_left < 0")
-            
+
             cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
             where_ckeys_dict = dict(zip(ckeys_keys[0:clevels_query], where_ckeys))
-            
+            # assert 0, (cl_idx, clevels_left, pkeys_keys, ckeys_keys, where_pkeys + where_ckeys, where_pkeys, where_ckeys, where_ckeys_dict, where_pkeys_dict, d)
+
+            rows = []
+            for row in d.values():
+                skip = False
+                for (kpk, vpk) in where_pkeys_dict.items():
+                    if row[kpk] != vpk:
+                        skip = True
+                for (kck, vck) in where_ckeys_dict.items():
+                    if row[kck] != vck:
+                        skip = True
+                if not skip:
+                    rows.append(row)
+            d = flat(rows, cl_idx, clevels_left) if rows is not None else []
+            """
             for key in where_pkeys + where_ckeys:
                 if d.get(key):
                     d = d[key]
                 else:
                     d = None
                     break
-            
+
             # flatten the results as a list of dicts for the
             # remaining clustering key clevels_all cassandra stores clustering trees
             # as a single physical data structure, but display them as multiple rows
+            #assert 0, (where_pkeys_dict, where_ckeys_dict)
             d = flat(d, cl_idx, clevels_left) if d is not None else []
-            
+            #assert 0, (d, where_pkeys_dict, where_ckeys_dict)
+
             # add remaining keys (if any output)
             d = [merge_dicts(where_pkeys_dict, where_ckeys_dict, v) for v in d]
-        
+            """
+
         else:
             keys = pkeys_keys + ckeys_keys
+            assert 0, (keys, pkeys_keys, where_pkeys, where_ckeys)
             d = flat(d, keys, len(keys))
-        
+
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
             d = [dict((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
-        
+
         # apply limit
         d = d[0:limit]
-        
+
         return d
-    
+
     def _insert(self, keyspace, table, update_dict={}, where_pkeys=[], where_ckeys=[], limit=1000):
-        
+
         # if no keyspace given use the default
         keyspace = keyspace if keyspace else self.use_keyspace
-        
+
         # check keyspace, table
         self._check_keyspace_table(keyspace, table)
-        
+
         d = self.db[keyspace][table]
         pkeys_keys = self.index[keyspace][table][0]
         ckeys_keys = self.index[keyspace][table][1:] if len(self.index[keyspace][table]) > 1 else []
-        
+
         # both partition and clustering keys must be available
         if len(pkeys_keys) != len(where_pkeys) and len(ckeys_keys) != len(where_ckeys):
             raise
-        
+
         # update the record
         for i in where_pkeys + where_ckeys:
             d = d[i]  # create and dive
@@ -164,9 +187,9 @@ class Session:
         # update/create the record
         for k, v in update_dict.items():
             d[k] = v
-    
+
     def execute(self, s, parameters=None, **kwargs):
-        
+
         def cast_value(s):
             if re.search("^'.*'$", s):
                 return s[1:-1]
@@ -174,57 +197,57 @@ class Session:
                 return int(s)
             else:
                 return float(s)
-        
+
         if isinstance(s, SimpleStatement):
             s = s.query_string
-            if parameters:
-                s = cassandra.query.bind_params(s, parameters, self.encoder)
         elif isinstance(s, PreparedStatement):
             assert 0, s
+        if parameters:
+            s = cassandra.query.bind_params(s, parameters, self.encoder)
         try:
             p = simpleSQL.parseString(s)
         except:
             logger.error(f"Error when parsing {s}")
             raise
-        
+
         if p[0] == 'use':
             self.set_keyspace(p[1])
             return
-        
+
         if p[0] == 'insert':
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
-            
+
             # check keyspace, table
             self._check_keyspace_table(keyspace, table)
-            
+
             col_names = p['columns']['list']
             col_values = [cast_value(i) for i in p['values']['list']]
             cols_kv = dict(zip(col_names, col_values))
-            
+
             pkeys_keys = list(self.index[keyspace][table][0])
             ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
-            
+
             try:
                 where_pkeys = [cols_kv[k] for k in pkeys_keys]
                 where_ckeys = [cols_kv[k] for k in ckeys_keys]
             except:
                 # missing primary key
                 raise
-            
+
             # remove keys from items to store
             for k in pkeys_keys + ckeys_keys:
                 del cols_kv[k]
-            
+
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
-        
+
         if p[0] == 'update':
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
-            
+
             # check keyspace, table
             self._check_keyspace_table(keyspace, table)
-            
+
             cols_kv = {}
             b = p.get('set')
             if b:
@@ -232,7 +255,7 @@ class Session:
                     if (i % 2):
                         continue
                     cols_kv[b[i][0]] = cast_value(b[i][2])
-            
+
             where_pkeys = []
             where_ckeys = []
             b = p.get('where')
@@ -240,28 +263,28 @@ class Session:
                 pkeys_keys = list(self.index[keyspace][table][0])
                 ckeys_keys = list(self.index[keyspace][table][1:]) \
                     if len(self.index[keyspace][table]) > 1 else []
-                
+
                 where_kv = dict()
                 for i in range(len(b)):
                     if not (i % 2):
                         continue
                     where_kv[b[i][0]] = cast_value(b[i][2])
-                
+
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
-            
+
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
-        
+
         if p[0] == 'select':
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
-            
+
             # check keyspace, table
             self._check_keyspace_table(keyspace, table)
-            
+
             cols_sel = p.get('columns')
             cols_sel = [] if '*' in cols_sel else cols_sel
-            
+
             where_pkeys = []
             where_ckeys = []
             b = p.get('where')
@@ -269,37 +292,39 @@ class Session:
                 pkeys_keys = list(self.index[keyspace][table][0])
                 ckeys_keys = list(self.index[keyspace][table][1:]) \
                     if len(self.index[keyspace][table]) > 1 else []
-                
+                # assert 0, (pkeys_keys, ckeys_keys, self.index[keyspace][table])
+
                 where_kv = dict()
                 for i in range(len(b)):
                     if not (i % 2):
                         continue
                     where_kv[b[i][0]] = cast_value(b[i][2])
-                
+
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
-            
+                # assert 0, (where_kv, pkeys_keys, ckeys_keys, where_ckeys, where_pkeys, cols_sel)
+
             limit = self.DEFAULTS['QUERY_LIMIT']
             b = p.get('limit')
             if b:
                 limit = b[1]
-            
+
             return self._query(keyspace, table, cols_sel, where_pkeys, where_ckeys, limit)
-        
+
         if p[0] == 'create' and p[1] == 'table':
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
-            
+
             # check keyspace
             self._check_keyspace_table(keyspace)
-            
+
             primary_key = p['columns_def']['columns']['column']['primary_key'][2]
             if len(primary_key) > 1:
                 self.index[keyspace][table] = [list(primary_key[0])] + list(primary_key[2])
             else:
                 keys = list(primary_key[0])
                 self.index[keyspace][table] = [keys[0]] + keys[0][1:]
-            
+
             #  create an empty tree in db
             self.db[keyspace][table] = Tree()
 
@@ -308,9 +333,11 @@ class Cluster:
     _default_load_balancing_policy = cassandra.cluster.Cluster._default_load_balancing_policy
     _load_balancing_policy = None
     _default_retry_policy = cassandra.cluster.RetryPolicy()
+
     @property
     def load_balancing_policy(self):
         return self._load_balancing_policy
+
     @property
     def default_retry_policy(self):
         """
@@ -324,7 +351,7 @@ class Cluster:
         # must clearly state :memory: in the list of seed
         if ':memory:' not in seed:
             raise ValueError("One of the elements in 'seed' should be ':memory:'")
-        
+
         self.data = Tree(data)
         self.session = None
         self.port = port
