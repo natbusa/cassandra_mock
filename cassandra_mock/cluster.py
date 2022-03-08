@@ -1,9 +1,12 @@
+import logging
+
 from .tree import Tree
 from .parser import simpleSQL
 import re
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
 import cassandra.cluster, cassandra.query
+logger = logging.getLogger(__name__)
 
 # some lists and dicts logistics
 
@@ -178,7 +181,11 @@ class Session:
                 s = cassandra.query.bind_params(s, parameters, self.encoder)
         elif isinstance(s, PreparedStatement):
             assert 0, s
-        p = simpleSQL.parseString(s)
+        try:
+            p = simpleSQL.parseString(s)
+        except:
+            logger.error(f"Error when parsing {s}")
+            raise
         
         if p[0] == 'use':
             self.set_keyspace(p[1])
