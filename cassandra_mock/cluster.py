@@ -152,8 +152,9 @@ class Session:
 
         else:
             keys = pkeys_keys + ckeys_keys
-            assert 0, (keys, pkeys_keys, where_pkeys, where_ckeys)
+            logger.info({'keys155': [keys, pkeys_keys, where_pkeys, where_ckeys, d]})
             d = flat(d, keys, len(keys))
+            logger.info({'keys155_after_flat': d})
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
