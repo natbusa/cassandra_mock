@@ -161,7 +161,7 @@ class Session:
             logger.info("dmomo")
 
         # apply limit
-        logger.info({'dval': [d, sel]})
+        logger.info({'dvalv': [d, sel]})
         d = d[0:limit]
         logger.info({'retd': d})
 
