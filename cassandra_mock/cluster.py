@@ -2,6 +2,7 @@ import logging
 
 from .tree import Tree
 from .parser import simpleSQL
+from .model import ModelMock
 import re
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
@@ -9,15 +10,12 @@ import cassandra.cluster, cassandra.query
 
 logger = logging.getLogger(__name__)
 
-
-# some lists and dicts logistics
-
 def merge_dicts(*dict_args):
     """
     Given any number of dicts, shallow copy and merge into a new dict,
     precedence goes to key value pairs in latter dicts.
     """
-    result = {}
+    result = ModelMock(())
     for dictionary in dict_args:
         result.update(dictionary)
     return result
@@ -50,7 +48,7 @@ def flat(d, kk, level):
         out = [d]
     else:
         lc = [flat(v, kk[1:], level - 1) for v in d.values()]
-        dlc = dict(zip(d.keys(), lc))
+        dlc = ModelMock(zip(d.keys(), lc))
         out = flat_one(dlc, kk[0])
     return out
 
@@ -117,7 +115,6 @@ class Session:
 
             cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
             where_ckeys_dict = dict(zip(ckeys_keys[0:clevels_query], where_ckeys))
-            # assert 0, (cl_idx, clevels_left, pkeys_keys, ckeys_keys, where_pkeys + where_ckeys, where_pkeys, where_ckeys, where_ckeys_dict, where_pkeys_dict, d)
 
             rows = []
             for row in d.values():
