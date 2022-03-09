@@ -97,6 +97,7 @@ class Session:
         d = self.db[keyspace][table]
         pkeys_keys = list(self.index[keyspace][table][0])
         ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
+        logger.info({"weps": {[keyspace, table, sel, where_pkeys, where_ckeys, limit]})
 
         if where_pkeys:
             # assert 0, where_pkeys
@@ -274,6 +275,7 @@ class Session:
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
 
         if p[0] == 'select':
+            logger.info({'bis': p})
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
 
@@ -290,7 +292,6 @@ class Session:
                 pkeys_keys = list(self.index[keyspace][table][0])
                 ckeys_keys = list(self.index[keyspace][table][1:]) \
                     if len(self.index[keyspace][table]) > 1 else []
-                # assert 0, (pkeys_keys, ckeys_keys, self.index[keyspace][table])
 
                 where_kv = dict()
                 for i in range(len(b)):
