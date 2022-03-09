@@ -157,8 +157,11 @@ class Session:
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel and sel != (['*'], {}):
-            d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
-            logger.info("dmomo")
+            if len(sel) == 2 and sel[0] == ['*'] and sel[1] == {}:
+                logger.info("passed")
+            else:
+                d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
+                logger.info("dmomo")
 
         # apply limit
         logger.info({'dvalv': [d, sel]})
