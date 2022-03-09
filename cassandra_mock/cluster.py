@@ -157,14 +157,14 @@ class Session:
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
-            if len(sel) == 2 and sel[0] == ['*'] and isinstance(sel[1], dict) and len(sel[1]) == 0:
+            if len(sel) == 2 and isinstance(sel[0], list) and len(sel[0])==1 and sel[0][1] == '*' and isinstance(sel[1], dict) and len(sel[1]) == 0:
                 logger.info("passed")
             else:
                 d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
                 logger.info("dmomo")
 
         # apply limit
-        logger.info({'dvalv': [d, sel]})
+        logger.info({'dvalv': d, 'sel': sel})
         d = d[0:limit]
         logger.info({'retd': d})
 
