@@ -159,6 +159,7 @@ class Session:
             d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
 
         # apply limit
+        logger.info({'dval': [d, sel]})
         d = d[0:limit]
         logger.info({'retd': d})
 
