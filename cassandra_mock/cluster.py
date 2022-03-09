@@ -97,7 +97,7 @@ class Session:
         d = self.db[keyspace][table]
         pkeys_keys = list(self.index[keyspace][table][0])
         ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
-        logger.info({"weps": {[keyspace, table, sel, where_pkeys, where_ckeys, limit]})
+        logger.info({"weps": [keyspace, table, sel, where_pkeys, where_ckeys, limit]})
 
         if where_pkeys:
             # assert 0, where_pkeys
@@ -160,6 +160,7 @@ class Session:
 
         # apply limit
         d = d[0:limit]
+        logger.info({'retd': d})
 
         return d
 
