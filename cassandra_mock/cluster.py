@@ -104,7 +104,7 @@ class Session:
             if len(pkeys_keys) != len(where_pkeys):
                 raise KeyError("At least one primary key is not present")
 
-            where_pkeys_dict = dict(zip(pkeys_keys, where_pkeys))
+            where_pkeys_dict = ModelMock(zip(pkeys_keys, where_pkeys))
 
             # clustering keys MAY be present
             clevels_all = len(ckeys_keys)
@@ -114,7 +114,7 @@ class Session:
                 raise KeyError("clevels_left < 0")
 
             cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
-            where_ckeys_dict = dict(zip(ckeys_keys[0:clevels_query], where_ckeys))
+            where_ckeys_dict = ModelMock(zip(ckeys_keys[0:clevels_query], where_ckeys))
 
             rows = []
             for row in d.values():
@@ -155,7 +155,7 @@ class Session:
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
-            d = [dict((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
+            d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
 
         # apply limit
         d = d[0:limit]
