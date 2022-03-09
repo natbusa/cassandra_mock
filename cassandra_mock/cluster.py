@@ -129,6 +129,7 @@ class Session:
                 if not skip:
                     rows.append(row)
             d = flat(rows, cl_idx, clevels_left) if rows is not None else []
+            logger.info({"diflat": d})
             """
             for key in where_pkeys + where_ckeys:
                 if d.get(key):
@@ -157,6 +158,7 @@ class Session:
         # apply sel, conforming to cassandra if not in the struct return None
         if sel and sel != (['*'], {}):
             d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
+            logger.info("dmomo")
 
         # apply limit
         logger.info({'dval': [d, sel]})
