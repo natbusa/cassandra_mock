@@ -155,7 +155,7 @@ class Session:
             logger.info({'keys155_after_flat': d})
 
         # apply sel, conforming to cassandra if not in the struct return None
-        if sel and sel != (['*', {}]):
+        if sel and sel != (['*'], {}):
             d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
 
         # apply limit
