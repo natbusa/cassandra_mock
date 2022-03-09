@@ -89,6 +89,9 @@ class Session:
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
 
         # if no keyspace given use the default
+        logger.info({"in_query":
+                         {"keyspace": keyspace, "table": table, "where_pkeys": where_pkeys,
+                          "where_ckeys": where_ckeys, "limit": limit}})
         keyspace = keyspace if keyspace else self.use_keyspace
 
         # check keyspace, table
@@ -100,8 +103,7 @@ class Session:
         logger.info({"weps": [keyspace, table, sel, where_pkeys, where_ckeys, limit]})
 
         if where_pkeys:
-            # assert 0, where_pkeys
-            # primary keys MUST be present or extract all table
+             # primary keys MUST be present or extract all table
             if len(pkeys_keys) != len(where_pkeys):
                 raise KeyError("At least one primary key is not present")
 
@@ -164,7 +166,7 @@ class Session:
                 logger.info("dmomo")
 
         # apply limit
-        logger.info({'dvalv': d, 'sel': sel})
+        logger.info({'dvalv': d, 'sel': sel, 'tpsel': type(sel)})
         d = d[0:limit]
         logger.info({'retd': d})
 
