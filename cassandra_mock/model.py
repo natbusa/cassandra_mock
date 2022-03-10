@@ -8,3 +8,8 @@ class ModelMock(dict):
         self[key] = value
     def __delattr__(self, key):
         del self[key]
+
+class ResultsList(list):
+    def one(self):
+        assert len(self) == 1, self
+        return self[0]

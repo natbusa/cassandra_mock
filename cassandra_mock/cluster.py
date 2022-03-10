@@ -2,7 +2,7 @@ import logging
 
 from .tree import Tree
 from .parser import simpleSQL
-from .model import ModelMock
+from .model import ModelMock, ResultsList
 import re
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
@@ -84,13 +84,14 @@ class Session:
             raise KeyError(f"Keyspace {keyspace} not in self.db.")
 
         if table and (self.db[keyspace].get(table) is None):
+            #assert 0, self.db
             raise KeyError(f"Table {table} not in self.db[{keyspace}].")
 
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
 
         # if no keyspace given use the default
         logger.info({"in_query":
-                         {"keyspace": keyspace, "table": table, "where_pkeys": where_pkeys,
+                         {"keyspace": keyspace, "table": table, "sel": sel, "where_pkeys": where_pkeys,
                           "where_ckeys": where_ckeys, "limit": limit}})
         keyspace = keyspace if keyspace else self.use_keyspace
 
@@ -100,7 +101,7 @@ class Session:
         d = self.db[keyspace][table]
         pkeys_keys = list(self.index[keyspace][table][0])
         ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
-        logger.info({"weps": [keyspace, table, sel, where_pkeys, where_ckeys, limit]})
+        logger.info({"weps": [keyspace, self.index[keyspace][table], pkeys_keys, ckeys_keys]})
 
         if where_pkeys:
              # primary keys MUST be present or extract all table
@@ -120,6 +121,8 @@ class Session:
             where_ckeys_dict = ModelMock(zip(ckeys_keys[0:clevels_query], where_ckeys))
 
             rows = []
+            where_all_keys = where_pkeys + where_ckeys
+            #assert 0, where_all_keys
             for row in d.values():
                 skip = False
                 for (kpk, vpk) in where_pkeys_dict.items():
@@ -130,9 +133,8 @@ class Session:
                         skip = True
                 if not skip:
                     rows.append(row)
-            d = flat(rows, cl_idx, clevels_left) if rows is not None else []
-            logger.info({"diflat": d})
-            """
+            d0 = flat(rows, cl_idx, clevels_left) if rows is not None else []
+            logger.info({"diflat": d0})
             for key in where_pkeys + where_ckeys:
                 if d.get(key):
                     d = d[key]
@@ -145,30 +147,29 @@ class Session:
             # as a single physical data structure, but display them as multiple rows
             #assert 0, (where_pkeys_dict, where_ckeys_dict)
             d = flat(d, cl_idx, clevels_left) if d is not None else []
-            #assert 0, (d, where_pkeys_dict, where_ckeys_dict)
+            logger.info({"dwd": d})
 
             # add remaining keys (if any output)
             d = [merge_dicts(where_pkeys_dict, where_ckeys_dict, v) for v in d]
-            """
+            logger.info({"dmd": d})
 
         else:
             keys = pkeys_keys + ckeys_keys
-            logger.info({'keys155': [keys, pkeys_keys, where_pkeys, where_ckeys, d]})
             d = flat(d, keys, len(keys))
             logger.info({'keys155_after_flat': d})
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
-            if len(sel) == 1 and isinstance(sel[0][0], list) and len(sel[0][0])==1 and sel[0][0][0] == '*' and isinstance(sel[0][1], dict) and len(sel[0][1]) == 0:
+            if len(sel) == 1 and sel[0] == '*':
                 logger.info("passed")
             else:
+                logger.info({"dmomo": d})
                 d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
-                logger.info("dmomo")
 
         # apply limit
-        logger.info({'dvalv': d, 'sel': sel, 'tpsel': type(sel)})
-        d = d[0:limit]
-        logger.info({'retd': d})
+        #logger.info({'dvalv': d, 'sel': sel, 'tpsel': type(sel)})
+        logger.info({'retd': d[0:limit], "limit": limit, 'firstd': d})
+        d = ResultsList(d[0:limit])
 
         return d
 
@@ -298,6 +299,7 @@ class Session:
             where_ckeys = []
             b = p.get('where')
             if b:
+                logger.info({"bwher": b, "p": p, "index": self.index})
                 pkeys_keys = list(self.index[keyspace][table][0])
                 ckeys_keys = list(self.index[keyspace][table][1:]) \
                     if len(self.index[keyspace][table]) > 1 else []
@@ -306,11 +308,12 @@ class Session:
                 for i in range(len(b)):
                     if not (i % 2):
                         continue
+                    logger.info({"inwrk": i, "bi": b[i]})
                     where_kv[b[i][0]] = cast_value(b[i][2])
+                logger.info({"wkv": where_kv, "pkeys_keys": pkeys_keys, "ckeys_keys": ckeys_keys, "ikv": len(self.index[keyspace][table])})
 
                 where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
-                # assert 0, (where_kv, pkeys_keys, ckeys_keys, where_ckeys, where_pkeys, cols_sel)
 
             limit = self.DEFAULTS['QUERY_LIMIT']
             b = p.get('limit')

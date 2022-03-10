@@ -12,3 +12,16 @@ class Tree(dict):
                 self[k] = type(self)(data)
             else:
                 self[k] = data
+
+    def one(self):
+        assert 0, "tone"
+        assert len(self) == 1, self
+        return next(iter(self.values()))
+
+    def __getattr__(self, key):
+        return self[key]
+    def __setattr__(self, key, value):
+        self[key] = value
+    def __delattr__(self, key):
+        del self[key]
+
