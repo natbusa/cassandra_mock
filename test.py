@@ -1,3 +1,5 @@
+"""File modified by Lucio Montero in 2022 to add the if __name__ == "__main__": to affect the tests
+"execution, to make this file runnable easily in PyCharm."""
 from cassandra_mock.cluster import Cluster
 
 CDB_DATA = {

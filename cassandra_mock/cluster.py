@@ -1,5 +1,5 @@
+#File modified by Lucio Montero in 2022 to support DELETE instructions
 import logging
-
 from .tree import Tree
 from .parser import simpleSQL
 from .model import ModelMock, ResultsDict, ResultDict, ResultsList
@@ -10,6 +10,7 @@ from cassandra.cluster import SimpleStatement, PreparedStatement
 import cassandra.cluster, cassandra.query
 
 logger = logging.getLogger(__name__)
+
 
 def merge_dicts(*dict_args):
     """

@@ -1,3 +1,9 @@
+"""
+Modified by Lucio Montero in 2022 to add new features and capabilities to the Tree objects, and to
+make that Tree(obj) for Tree object returns obj instead of creating a new object based in the obj
+keys and values.
+"""
+
 class Tree(dict):
     """A tree implementation using python's autovivification feature."""
     

@@ -1,4 +1,5 @@
-"""A setuptools based setup module.
+"""File added by Lucio Montero in 2022 to make the package installable
+A setuptools based setup module.
 See:
 https://packaging.python.org/guides/distributing-packages-using-setuptools/
 https://github.com/pypa/sampleproject
@@ -37,7 +38,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/guides/single-sourcing-package-version/
-    version='0.1.22',  # Required
+    version='0.1.23',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
