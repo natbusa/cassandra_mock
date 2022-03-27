@@ -6,15 +6,24 @@ class Tree(dict):
         return value
     
     # cast a (nested) dict to a (nested) Tree class
-    def __init__(self, data={}):
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
         for k, data in data.items():
             if isinstance(data, dict):
                 self[k] = type(self)(data)
             else:
                 self[k] = data
 
+    def __new__(cls, data=None):
+        if isinstance(data, Tree):
+            return data
+        else:
+            return dict.__new__(Tree, data)
+
     def one(self):
-        assert 0, "tone"
+        return self
+        assert 0, ("tone", len(self), self, next(iter(self.values())))
         assert len(self) == 1, self
         return next(iter(self.values()))
 
