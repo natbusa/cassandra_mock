@@ -2,8 +2,9 @@ import logging
 
 from .tree import Tree
 from .parser import simpleSQL
-from .model import ModelMock, ResultsList
+from .model import ModelMock, ResultsDict, ResultDict, ResultsList
 import re
+import itertools
 from unittest.mock import MagicMock
 from cassandra.cluster import SimpleStatement, PreparedStatement
 import cassandra.cluster, cassandra.query
@@ -90,9 +91,9 @@ class Session:
     def _query(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
 
         # if no keyspace given use the default
-        logger.info({"in_query":
-                         {"keyspace": keyspace, "table": table, "sel": sel, "where_pkeys": where_pkeys,
-                          "where_ckeys": where_ckeys, "limit": limit}})
+        #logger.info({"in_query":
+        #                 {"keyspace": keyspace, "table": table, "sel": sel, "where_pkeys": where_pkeys,
+        #                  "where_ckeys": where_ckeys, "limit": limit}})
         keyspace = keyspace if keyspace else self.use_keyspace
 
         # check keyspace, table
@@ -101,14 +102,15 @@ class Session:
         d = self.db[keyspace][table]
         pkeys_keys = list(self.index[keyspace][table][0])
         ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
-        logger.info({"weps": [keyspace, self.index[keyspace][table], pkeys_keys, ckeys_keys]})
 
-        if where_pkeys:
+        keys = pkeys_keys + ckeys_keys
+        where_all_keys = where_pkeys + where_ckeys
+        if len(where_pkeys) > 0 or len(where_ckeys) > 0:
              # primary keys MUST be present or extract all table
             if len(pkeys_keys) != len(where_pkeys):
                 raise KeyError("At least one primary key is not present")
 
-            where_pkeys_dict = ModelMock(zip(pkeys_keys, where_pkeys))
+            where_pkeys_dict = ModelMock(e for e in zip(pkeys_keys, where_pkeys) if e[1] is not None)
 
             # clustering keys MAY be present
             clevels_all = len(ckeys_keys)
@@ -120,10 +122,8 @@ class Session:
             cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
             where_ckeys_dict = ModelMock(zip(ckeys_keys[0:clevels_query], where_ckeys))
 
-            rows = []
-            where_all_keys = where_pkeys + where_ckeys
-            #assert 0, where_all_keys
-            for row in d.values():
+            new_d = {}
+            for (krow, row) in d.items():
                 skip = False
                 for (kpk, vpk) in where_pkeys_dict.items():
                     if row[kpk] != vpk:
@@ -132,44 +132,139 @@ class Session:
                     if row[kck] != vck:
                         skip = True
                 if not skip:
-                    rows.append(row)
-            d0 = flat(rows, cl_idx, clevels_left) if rows is not None else []
-            logger.info({"diflat": d0})
-            for key in where_pkeys + where_ckeys:
-                if d.get(key):
-                    d = d[key]
-                else:
-                    d = None
-                    break
+                    new_d[krow] = row
 
             # flatten the results as a list of dicts for the
             # remaining clustering key clevels_all cassandra stores clustering trees
             # as a single physical data structure, but display them as multiple rows
-            #assert 0, (where_pkeys_dict, where_ckeys_dict)
-            d = flat(d, cl_idx, clevels_left) if d is not None else []
-            logger.info({"dwd": d})
-
-            # add remaining keys (if any output)
-            d = [merge_dicts(where_pkeys_dict, where_ckeys_dict, v) for v in d]
-            logger.info({"dmd": d})
+            d = flat(new_d, cl_idx, clevels_left) if new_d is not None and len(new_d)>0 else []
 
         else:
-            keys = pkeys_keys + ckeys_keys
             d = flat(d, keys, len(keys))
-            logger.info({'keys155_after_flat': d})
 
         # apply sel, conforming to cassandra if not in the struct return None
         if sel:
             if len(sel) == 1 and sel[0] == '*':
-                logger.info("passed")
+                logger.info("passed as sel *")
             else:
-                logger.info({"dmomo": d})
-                d = [ModelMock((k, v[k]) if k in v else (k, None) for k in sel) for v in d]
+                sel_as_list = sel.asList()
+                #d = [ModelMock((k, v[k]) if k in v else (k0, None) for k in sel_as_list) for (key, v) in d[0].items()]
 
         # apply limit
-        #logger.info({'dvalv': d, 'sel': sel, 'tpsel': type(sel)})
-        logger.info({'retd': d[0:limit], "limit": limit, 'firstd': d})
-        d = ResultsList(d[0:limit])
+        if len(d) == 0:
+            return ResultsDict({})
+        if isinstance(d, list) and not isinstance(d, ResultsList):
+            if len(d) == 1:
+                if pkeys_keys[0] in d[0]:
+                    d = ResultDict(d[0])
+                else:
+                    d = ResultsDict(d[0])
+                #d = ResultsList(d)
+            elif limit >= len(d):
+                d = ResultsList(d)
+            else:
+                d = ResultsList(d[0:limit])
+        else:
+            if limit >= len(d):
+                d = ResultsDict(d)
+            else:
+                d = ResultsDict({key: d[key] for key in list(d.keys())[0:limit]})
+
+        return d
+
+    def _delete(self, keyspace, table, sel=[], where_pkeys=[], where_ckeys=[], limit=DEFAULTS['QUERY_LIMIT']):
+
+        # if no keyspace given use the default
+        #logger.info({"in_delete":
+        #                 {"keyspace": keyspace, "table": table, "sel": sel, "where_pkeys": where_pkeys,
+        #                  "where_ckeys": where_ckeys, "limit": limit}})
+        keyspace = keyspace if keyspace else self.use_keyspace
+
+        # check keyspace, table
+        self._check_keyspace_table(keyspace, table)
+
+        d = self.db[keyspace][table]
+        pkeys_keys = list(self.index[keyspace][table][0])
+        ckeys_keys = list(self.index[keyspace][table][1:]) if len(self.index[keyspace][table]) > 1 else []
+
+        # TODO, for delete,better to select booleanly which rows to delete, and delete them based on that selector
+        # but without copying the data.
+
+        keys = pkeys_keys + ckeys_keys
+        where_all_keys = where_pkeys + where_ckeys
+        if len(where_pkeys) > 0 or len(where_ckeys) > 0:
+             # primary keys MUST be present or extract all table
+            if len(pkeys_keys) != len(where_pkeys):
+                raise KeyError("At least one primary key is not present")
+
+            where_pkeys_dict = ModelMock(e for e in zip(pkeys_keys, where_pkeys) if e[1] is not None)
+
+        # clustering keys MAY be present
+            clevels_all = len(ckeys_keys)
+            clevels_query = len(where_ckeys)
+            clevels_left = clevels_all - clevels_query
+            if clevels_left < 0:
+                raise KeyError("clevels_left < 0")
+
+            cl_idx = ckeys_keys[-clevels_left:] if clevels_left else []
+            where_ckeys_dict = ModelMock(zip(ckeys_keys[0:clevels_query], where_ckeys))
+
+            #new_d = {}
+            where_to_delete = {}
+            for (krow, row) in d.items():
+                skip = False
+                for (kpk, vpk) in where_pkeys_dict.items():
+                    if row[kpk] != vpk:
+                        skip = True
+                for (kck, vck) in where_ckeys_dict.items():
+                    if row[kck] != vck:
+                        skip = True
+                #where_to_delete[krow] = not skip
+                if not skip:
+                    where_to_delete[krow] = True
+                    #new_d[krow] = row
+
+            # flatten the results as a list of dicts for the
+            # remaining clustering key clevels_all cassandra stores clustering trees
+            # as a single physical data structure, but display them as multiple rows
+            #d = flat(new_d, cl_idx, clevels_left) if new_d is not None and len(new_d)>0 else []
+
+        else:
+            assert 0, "DELETEing an entire table, or so"
+            d = flat(d, keys, len(keys))
+
+        # apply sel, conforming to cassandra if not in the struct return None
+        if sel:
+            if len(sel) == 1 and sel[0] == '*':
+                logger.info("passed as sel *")
+                #assert 0
+            else:
+                sel_as_list = sel.asList()
+                #d = [ModelMock((k, v[k]) if k in v else (k0, None) for k in sel_as_list) for (key, v) in d[0].items()]
+
+        # apply limit
+        #logger.info({'retdu': d[0:limit], "limit": limit, 'd': d})
+        if isinstance(d, list) and not isinstance(d, ResultsList):
+            assert 0, "d is list and not ResultsList"
+            if len(d) == 1:
+                dc = self.db[keyspace][table]
+                p = d[0].copy()
+                d[0].clear()
+                return p
+            elif limit >= len(d):
+                d = ResultsList(d)
+            else:
+                d = ResultsList(d[0:limit])
+        else:
+            if limit >= len(d):
+                #d = ResultsDict(d)
+                for kwtd in where_to_delete.keys():
+                    logger.info(f"Deleted element {kwtd} from {keyspace}-{table}")
+                    del d[kwtd]
+            else:
+                for kwtd in itertools.islice(where_to_delete.keys(), limit):
+                    logger.info(f"Deleted element {kwtd} from {keyspace}-{table}")
+                    del d[kwtd]
 
         return d
 
@@ -279,13 +374,14 @@ class Session:
                         continue
                     where_kv[b[i][0]] = cast_value(b[i][2])
 
-                where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
+                #where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
+                where_pkeys = [where_kv.get(k) for k in pkeys_keys] #we need to fill the slots with None for the keys not used, in order to later map by place the value filter to its corresponding key
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
 
             return self._insert(keyspace, table, cols_kv, where_pkeys, where_ckeys)
 
         if p[0] == 'select':
-            logger.info({'bis': p})
+            #logger.info({'bis': p})
             b = p['table']
             (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
 
@@ -299,7 +395,6 @@ class Session:
             where_ckeys = []
             b = p.get('where')
             if b:
-                logger.info({"bwher": b, "p": p, "index": self.index})
                 pkeys_keys = list(self.index[keyspace][table][0])
                 ckeys_keys = list(self.index[keyspace][table][1:]) \
                     if len(self.index[keyspace][table]) > 1 else []
@@ -308,11 +403,10 @@ class Session:
                 for i in range(len(b)):
                     if not (i % 2):
                         continue
-                    logger.info({"inwrk": i, "bi": b[i]})
                     where_kv[b[i][0]] = cast_value(b[i][2])
-                logger.info({"wkv": where_kv, "pkeys_keys": pkeys_keys, "ckeys_keys": ckeys_keys, "ikv": len(self.index[keyspace][table])})
 
-                where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
+                #where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
+                where_pkeys = [where_kv.get(k) for k in pkeys_keys] #we need to fill the slots with None for the keys not used, in order to later map by place the value filter to its corresponding key
                 where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
 
             limit = self.DEFAULTS['QUERY_LIMIT']
@@ -338,6 +432,43 @@ class Session:
 
             #  create an empty tree in db
             self.db[keyspace][table] = Tree()
+
+        if p[0] == 'delete':
+            # ['delete', 'from', ['asset'], ['where', ['id', '=', \"'one'\"]], ';']
+            b = p['table']
+            (keyspace, table) = (b[0], b[2]) if len(b) > 1 else (self.use_keyspace, b[0])
+
+            # check keyspace, table
+            self._check_keyspace_table(keyspace, table)
+
+            cols_sel = p.get('columns')
+            cols_sel = [] if cols_sel is None or '*' in cols_sel else cols_sel
+
+            where_pkeys = []
+            where_ckeys = []
+            b = p.get('where')
+            if b:
+                pkeys_keys = list(self.index[keyspace][table][0])
+                ckeys_keys = list(self.index[keyspace][table][1:]) \
+                    if len(self.index[keyspace][table]) > 1 else []
+
+                where_kv = dict()
+                for i in range(len(b)):
+                    if not (i % 2):
+                        continue
+                    where_kv[b[i][0]] = cast_value(b[i][2])
+
+                #where_pkeys = [where_kv[k] for k in pkeys_keys if where_kv.get(k) is not None]
+                where_pkeys = [where_kv.get(k) for k in pkeys_keys] #we need to fill the slots with None for the keys not used, in order to later map by place the value filter to its corresponding key
+                where_ckeys = [where_kv[k] for k in ckeys_keys if where_kv.get(k) is not None]
+
+            limit = self.DEFAULTS['QUERY_LIMIT']
+            b = p.get('limit')
+            if b:
+                limit = b[1]
+
+            to_delete = self._delete(keyspace, table, cols_sel, where_pkeys, where_ckeys, limit)
+            return to_delete
 
 
 class Cluster:
