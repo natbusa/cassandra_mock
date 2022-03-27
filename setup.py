@@ -37,7 +37,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/guides/single-sourcing-package-version/
-    version='0.1.21',  # Required
+    version='0.1.22',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -130,7 +130,7 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=find_packages(where='cassandra_mock'),  # Required
+    packages=find_packages(where='.'),  # Required
 
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
