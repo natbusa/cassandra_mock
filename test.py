@@ -1,3 +1,5 @@
+"""File modified by Lucio Montero in 2022 to add the if __name__ == "__main__": to affect the tests
+"execution, to make this file runnable easily in PyCharm."""
 from cassandra_mock.cluster import Cluster
 
 CDB_DATA = {
@@ -121,6 +123,7 @@ stmts = [
     "select * from sblocks;"
 ]
 
+"""
 ----
 {'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'oh': 'my', 'to_id': '0'}
 {'from_type': 'ideas', 'from_id': '0', 'to_type': 'projects', 'to_id': '1'}
@@ -147,9 +150,10 @@ stmts = [
 ----
 ----
 {'data': 'd', 'sub_block_id': 'c', 'block_id': 'b', 'id': 'a'}
-
-for i in stmts:
-    print('----')
-    rows = session.execute(i)
-    if rows:
-        for row in rows: print(row)
+"""
+if __name__ == "__main__":
+    for (i, stmt) in enumerate(stmts):
+        print('----', i)
+        rows = session.execute(stmt)
+        if rows:
+            for row in rows: print(row)
